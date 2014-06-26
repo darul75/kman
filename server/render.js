@@ -4,6 +4,8 @@ var path = require('path')
     , bodyParser = require('koa-bodyparser')
     , spa = require('koa-spa')
 
+    , views = require('koa-views')
+
     , config = require('../config')
     , routePath = require('./utils/routePath')
 
@@ -15,6 +17,9 @@ var path = require('path')
 module.exports = app
     .use(bodyParser())
     .use(passport.initialize())
+    .use(views('./views', {
+        default: 'swig'
+    }))
     .use(router(app))
     .use(routePath(app))
     .use(spa(path.join(config.root, 'client'), {

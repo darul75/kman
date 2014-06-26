@@ -94,6 +94,11 @@ module.exports = {
             yield next;
         }).call(ctx);
     }, function *(next){
+
+        yield this.render('index', {
+            testData: 'testData'
+        });
+        return;
         var profile = this.user;
         var user = yield User.findOne({
             platform: 'google'
