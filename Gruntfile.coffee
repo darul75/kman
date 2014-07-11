@@ -17,7 +17,9 @@ module.exports = (grunt)->
                     'client/scripts/**/*.js'
                 ]
                 tasks: [
-                    'newer:jshint:all'
+                    'newer:jshint:client'
+                    'client_unit'
+                    'client_e2e'
                 ]
                 options:
                     livereload: true
@@ -42,19 +44,20 @@ module.exports = (grunt)->
                     'compass:server'
                     'autoprefixer'
                 ]
-            server:
+            nodemon:
                 files: [
                     '.nodemon'
                 ]
                 options:
                     livereload: true
-            jsTest:
+            clientSpecs:
                 files: [
                     'test/client/spec/{,*/}*.js'
                 ]
                 tasks: [
-                    'newer:jshint:test'
-                    'karma'
+                    'newer:jshint:clientSpecs'
+                    'unit'
+                    'e2e'
                 ]
             gruntfile:
                 files: [
@@ -87,7 +90,7 @@ module.exports = (grunt)->
                             , 2000 # 时间太短的话, server还没启动完毕, 浏览器就刷新了
 
         concurrent:
-            tasks: [
+            dev: [
                 'nodemon'
                 'watch'
             ]
@@ -96,13 +99,14 @@ module.exports = (grunt)->
 
         jshint:
             options:
-                jshintrc: '.jshintrc'
                 reporter: stylish
-            all:
+            client:
+                options:
+                    jshintrc: 'test/client/.jshintrc'
                 src: [
                     'client/scripts/**/*.js'
                 ]
-            test:
+            clientSpecs:
                 options:
                     jshintrc: 'test/client/.jshintrc'
                 src: [
@@ -134,7 +138,7 @@ module.exports = (grunt)->
                     html:
                         replace:
                             js: '<script src="/{{filePath}}"></script>'
-                            css:'<link rel="stylesheet" href="/{{filePath}}" />'
+                            css: '<link rel="stylesheet" href="/{{filePath}}" />'
 
         autoprefixer:
             options:
@@ -227,7 +231,6 @@ module.exports = (grunt)->
                 cwd: 'client/.tmp/concat/scripts'
                 src: [
                     '**/*.js'
-                    '!**/vendor.js'
                 ]
                 dest: 'client/.tmp/concat/scripts'
 
@@ -244,7 +247,7 @@ module.exports = (grunt)->
                 src: [
                     '**/*.html'
                 ]
-                dest: 'client/.tmp/scripts/app.template.js'
+                dest: 'client/.tmp/ngtemplates/app.template.js'
 
         copy:
             asserts:
@@ -299,10 +302,11 @@ module.exports = (grunt)->
                 src: 'bower_components/**/*'
                 dest: 'dist/client'
 
-        karma:
-            unit:
-                configFile: 'test/client/karma.conf.js'
-                singRun: true
+            nginx:
+                expand: true
+                cwd: '.'
+                src: 'nginx/**/*'
+                dest: 'dist'
 
         compress:
             dist:
@@ -320,6 +324,17 @@ module.exports = (grunt)->
                 options:
                     stdout: true
                 command: "#{if platform ==  'darwin' then 'md5' else 'md5sum'} zips/<%= pkg.name %>-V<%= pkg.version %>.zip"
+
+        karma:
+            options:
+                configFile: 'test/client/karma.conf.js'
+            main: {}
+
+        protractor:
+            options:
+                configFile: 'test/client/e2e.conf.js'
+                noColor: false
+            main: {}
 
     @registerTask 'build', [
         'clean'
@@ -341,6 +356,20 @@ module.exports = (grunt)->
     ]
 
     @registerTask 'dev', [
+        'wiredep'
+        'compass:server'
         'concurrent'
     ]
 
+    @registerTask 'client_unit', [
+        'karma'
+    ]
+
+    @registerTask 'client_e2e', [
+        'protractor'
+    ]
+
+    @registerTask 'default', [
+        'jshint'
+        'build'
+    ]

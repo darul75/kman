@@ -1,5 +1,7 @@
 var jwt = require('koa-jwt')
+
     , config = require('../../config')
+
     , secret = config.secret
     , debug = config.env === 'development'
     ;
@@ -10,7 +12,7 @@ function authorize(passthrough){
         , debug: debug
         , passthrough: passthrough || false
     });
-};
+}
 
 module.exports = authorize();
 module.exports.authorize = authorize;

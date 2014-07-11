@@ -1,10 +1,11 @@
-var User = require('../models/user')
-    , sign = require('../middles/authorize').sign
-    , only = require('only')
+var only = require('only')
     , request = require('co-request')
     , gravatar = require('gravatar').url
     , Promise = require('bluebird')
+
+    , sign = require('../middles/authorize').sign
     , passport = require('../pre/passport')
+    , User = require('../models/user')
 
     ;
 
@@ -24,7 +25,8 @@ module.exports = {
         }).exec();
 
         if(!user){
-            this.throw(401, 'Incorrect e-mail address or password.');
+            this.status = 401;
+            this.body = 'Incorrect e-mail address or password.';
         }else{
 
             var token = sign(user, {
@@ -37,8 +39,8 @@ module.exports = {
             };
         }
     }
-    , 'GET /signin/facebook': passport.authenticate('facebook')
-    , 'GET /signin/facebook/callback': [function *(next){
+    , 'GET,POST /signin/facebook': passport.authenticate('facebook')
+    , 'GET,POST /signin/facebook/callback': [function *(next){
         var ctx = this;
         yield passport.authenticate('facebook', {
             failureRedirect: '/signin.html'
@@ -82,10 +84,15 @@ module.exports = {
                 expireInMinutes: 90 * 24 * 60
             });
 
-        this.redirect('/?user=' + encodeURIComponent(JSON.stringify({token: token, user: showUser})));
+        yield this.render('oauth', {
+            output: JSON.stringify({
+                token: token
+                , user: user
+            })
+        });
     }]
-    , 'GET /signin/google': passport.authenticate('google', {scope: 'profile'})
-    , 'GET /signin/google/callback': [function *(next){
+    , 'GET,POST /signin/google': passport.authenticate('google', {scope: 'profile'})
+    , 'GET,POST /signin/google/callback': [function *(next){
         var ctx = this;
         yield passport.authenticate('google', {
             failureRedirect: '/signin.html'
@@ -132,6 +139,109 @@ module.exports = {
                 expireInMinutes: 90 * 24 * 60
             });
 
-        this.redirect('/?user=' + encodeURIComponent(JSON.stringify({token: token, user: showUser})));
+        yield this.render('oauth', {
+            output: JSON.stringify({
+                token: token
+                , user: user
+            })
+        });
+    }]
+    , 'GET,POST /signin/weibo': passport.authenticate('weibo')
+    , 'GET,POST /signin/weibo/callback': [function *(next){
+        var ctx = this;
+        yield passport.authenticate('weibo', {
+            failureRedirect: '/signin.html'
+        }, function *(err, user, info){
+            ctx.user = user;
+            yield next;
+        }).call(ctx);
+    }, function *(next){
+        var profile = this.user;
+        var user = yield User.findOne({
+            platform: 'weibo'
+            , platformId: profile.idstr
+        }, {
+            _id: 1
+            , name: 1
+            , avatar: 1
+        }).exec();
+
+        if(!user){
+            user = new User({
+                platform: 'weibo'
+                , platformId: profile.idstr
+                , name: profile.screen_name
+                , avatar: profile.avatar_large
+            });
+        }else{
+            user.name = profile.screen_name;
+            user.avatar = profile.avatar_large;
+        }
+        yield Promise.promisify(user.save, user)();
+
+        var showUser = only(user, [
+            '_id'
+            , 'name'
+            , 'avatar'
+        ]);
+
+        var token = sign(showUser, {
+                expireInMinutes: 90 * 24 * 60
+            });
+
+        yield this.render('oauth', {
+            output: JSON.stringify({
+                token: token
+                , user: user
+            })
+        });
+    }]
+    , 'GET,POST /signin/qq': passport.authenticate('qq')
+    , 'GET,POST /signin/qq/callback': [function *(next){
+        var ctx = this;
+        yield passport.authenticate('qq', function *(err, user, info){
+            ctx.user = user;
+            yield next;
+        }).call(ctx);
+    }, function *(next){
+        var profile = this.user;
+        var user = yield User.findOne({
+            platform: 'qq'
+            , platformId: profile.id
+        }, {
+            _id: 1
+            , name: 1
+            , avatar: 1
+        }).exec();
+
+        if(!user){
+            user = new User({
+                platform: 'qq'
+                , platformId: profile.id
+                , name: profile.nickname
+                , avatar: profile._json.figureurl_qq_2
+            });
+        }else{
+            user.name = profile.nickname;
+            user.avatar = profile._json.figureurl_qq_2;
+        }
+        yield Promise.promisify(user.save, user)();
+
+        var showUser = only(user, [
+            '_id'
+            , 'name'
+            , 'avatar'
+        ]);
+
+        var token = sign(showUser, {
+                expireInMinutes: 90 * 24 * 60
+            });
+
+        yield this.render('oauth', {
+            output: JSON.stringify({
+                token: token
+                , user: user
+            })
+        });
     }]
 };

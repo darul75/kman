@@ -1,20 +1,23 @@
 var koa = require('koa')
-    , json = require('koa-json')
-    , jsonp = require('koa-jsonp')
     , router = require('koa-router')
     , bodyParser = require('koa-bodyparser')
     , validator = require('koa-validator')
+    , views = require('koa-views')
 
     , route = require('./utils/route')
+    , passport = require('./pre/passport')
 
     , app = koa()
     ;
 
 module.exports = app
-    .use(json({pretty: false, param: 'pretty'}))
-    .use(jsonp())
     .use(bodyParser())
     .use(validator())
+    .use(views('./views', {
+        default: 'swig'
+        , cache: 'memory'
+    }))
+    .use(passport.initialize())
     .use(router(app))
-    .use(route(app, 'api'))
+    .use(route(app, 'path'))
     ;

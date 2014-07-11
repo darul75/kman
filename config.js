@@ -8,6 +8,8 @@ var path = require('path')
 
     , googleCallbackPath = '/signin/google/callback'
     , facebookCallbackPath = '/signin/facebook/callback'
+    , weiboCallbackPath = '/signin/weibo/callback'
+    , qqCallbackPath = '/signin/qq/callback'
 
     ;
 
@@ -31,6 +33,14 @@ var baseConfig = {
             clientID: '280611452741-apjn650lstej7sc5cm0v4u3e2cr07imm.apps.googleusercontent.com'
             , clientSecret: 'v5xQ3pCT2KVkWnTSxk7aCVfF'
         }
+        , weibo: {
+            clientID: '61912456'
+            , clientSecret: 'efd9b75e9f4ce3d9d25ffeaac8194700'
+        }
+        , qq: {
+            clientID: '101135479'
+            , clientSecret: '8daf20cf8818fc26a023316446331e21'
+        }
     }
 };
 
@@ -40,7 +50,7 @@ var envConfig = {
             port: 3000
         }
         , asserts: {
-            styles: path.join(root, 'client/styles')
+            styles: path.join(root, 'client/.tmp/styles')
         }
         , minifier: {
             collapseWhitespace: false
@@ -56,14 +66,12 @@ var envConfig = {
             , google: {
                 callbackURL: 'http://localhost:3000' + googleCallbackPath
             }
-        }
-    }
-    , test: {
-        app: {
-            port: 3001
-        }
-        , mongo: {
-            url: 'mongodb://localhost:27017/kmantest'
+            , weibo: {
+                callbackURL: 'http://localhost:3000' + weiboCallbackPath
+            }
+            , qq: {
+                callbackURL: 'http://localhost:3000' + qqCallbackPath
+            }
         }
     }
     , production: {
@@ -87,6 +95,12 @@ var envConfig = {
             }
             , google: {
                 callbackURL: domain + googleCallbackPath
+            }
+            , weibo: {
+                callbackURL: domain + weiboCallbackPath
+            }
+            , qq: {
+                callbackURL: domain + qqCallbackPath
             }
         }
     }

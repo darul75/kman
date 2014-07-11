@@ -1,4 +1,5 @@
 var http = require('http')
+
     , koa = require('koa')
     , favi = require('koa-favi')
     , logger = require('koa-logger')
@@ -6,10 +7,12 @@ var http = require('http')
     , minifier = require('koa-html-minifier')
     , mongoose = require('mongoose')
 
+    , pkg = require('./package.json')
     , mongoseed = require('./server/pre/mongoseed')
-    , assertsApp = require('./server/asserts')
-    , renderApp = require('./server/render')
-    , apiApp = require('./server/api')
+    , assertsApp = require('./server/assert')
+    , pathsApp = require('./server/path')
+    , resourcesApp = require('./server/resource')
+    , apisApp = require('./server/api')
     , socket = require('./server/socket')
     , config = require('./config')
 
@@ -18,45 +21,43 @@ var http = require('http')
 
     ;
 
-exports.init = function(){
-    mongoose.connect(config.mongo.url);
-    mongoseed()
-    .then(function(){
-        app
+// connect to mongoDB
+mongoose.connect(config.mongo.url);
+// prepare mongoseed
+mongoseed()
+.then(function(){
+    // prepare koa middlewares
+    app
         .use(favi())
         .use(logger())
         .use(minifier({
             collapseWhitespace: config.minifier.collapseWhitespace,
             removeComments: config.minifier.removeComments
         }))
-        .use(mount('/api', apiApp))
+        // Here we add one more apisApp, separate from resourcesApp.
+        // So we can have more power for backend service, not only RESTful API.
+        // Thus, we have two service prefixs, `/api` for normal style API when
+        // the API can't be abstracted to one resource, `/resource` for resource
+        // style API.
+        // All other paths will be treated as pages and asserts paths.
+        // Just like below
+        // So, finally we have four subApps for different usages
+        // - resourcesApp, RESTful style API
+        // - apisApp, normal style API
+        // - pathsApp, page paths that can be rendered by a template
+        // - assertsApp, serve all static files(css, js, images, html, fonts, etc.)
+        .use(mount('/resource', resourcesApp))
+        .use(mount('/api', apisApp))
+        .use(mount(pathsApp))
         .use(mount(assertsApp))
-        .use(mount(renderApp))
         ;
 
-        server = http.Server(app.callback());
-        socket
-        .init(server)
-        .listen(config.app.port);
+    // create http server instance for socket.io
+    server = http.Server(app.callback());
+    // init socket.io
+    socket.init(server);
+    // start server
+    server.listen(config.app.port);
 
-        console.log('=========================================================');
-        console.log('      ___           ___           ___           ___');
-        console.log('     /\\__\\         /\\__\\         /\\  \\         /\\__\\');
-        console.log('    /:/  /        /::|  |       /::\\  \\       /::|  |');
-        console.log('   /:/__/        /:|:|  |      /:/\\:\\  \\     /:|:|  |');
-        console.log('  /::\\__\\____   /:/|:|__|__   /::\\~\\:\\  \\   /:/|:|  |__');
-        console.log(' /:/\\:::::\\__\\ /:/ |::::\\__\\ /:/\\:\\ \\:\\__\\ /:/ |:| /\\__\\');
-        console.log(' \\/_|:|~~|~    \\/__/~~/:/  / \\/__\\:\\/:/  / \\/__|:|/:/  /');
-        console.log('    |:|  |           /:/  /       \\::/  /      |:/:/  /');
-        console.log('    |:|  |          /:/  /        /:/  /       |::/  /');
-        console.log('    |:|  |         /:/  /        /:/  /        /:/  /');
-        console.log('     \\|__|         \\/__/         \\/__/         \\/__/');
-        console.log('=========================================================');
-        console.log('kman is listening port', config.app.port);
-    });
-};
-
-if(!module.parent){
-    exports.init();
-}
-
+    console.log('%s is listening port %d', pkg.name, config.app.port);
+});

@@ -1,7 +1,9 @@
 var path = require('path')
+
     , koa = require('koa')
     , serve = require('koa-static')
     , mount = require('koa-mount')
+    , spa = require('koa-spa')
 
     , config = require('../config')
 
@@ -15,4 +17,10 @@ module.exports = app
     .use(mount('/views', serve(config.asserts.views)))
     .use(mount('/styles', serve(config.asserts.styles)))
     .use(mount('/fonts', serve(config.asserts.fonts)))
+    .use(spa(path.join(config.root, 'client'), {
+        index: 'index.html'
+        , static: {
+            gzip: true
+        }
+    }))
     ;

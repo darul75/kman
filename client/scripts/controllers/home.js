@@ -1,6 +1,6 @@
 'use strict';
 angular.module('kman')
-.controller('homeCtrl', ['$scope', 'Post', 'Comment', 'Socket', function($scope, Post, Comment, Socket){
+.controller('homeCtrl', ['authorized', '$scope', 'Post', 'Comment', 'Socket', function(authorized, $scope, Post, Comment, Socket){
     var user = $scope.common.user;
 
     $scope.postBox = {
@@ -20,12 +20,12 @@ angular.module('kman')
     }
 
     function addComment(newComment){
-        var postId = newComment.belong_to;
+        var postId = newComment.belongTo;
         var posts, post;
         if((posts = $scope.posts.filter(function(post){
             return post._id === postId;
         })).length){
-            var post = posts[0];
+            post = posts[0];
             if(!post.comments.some(function(comment){
                 return comment._id === newComment._id;
             })){
@@ -50,10 +50,13 @@ angular.module('kman')
     });
 
     $scope.createPost = function(){
+        if(!$scope.postBox.content.length || $scope.postBox.disabled){
+            return;
+        }
         $scope.postBox.disabled = true;
         var post = new Post({
             content: $scope.postBox.content,
-            created_by: user._id
+            createdBy: user._id
         });
 
         post.$save(function(post){
@@ -81,8 +84,8 @@ angular.module('kman')
 
         var comment = new Comment({
             content: post.commentBox.content,
-            created_by: user._id,
-            belong_to: post._id
+            createdBy: user._id,
+            belongTo: post._id
         });
 
         comment.$save(function(comment){

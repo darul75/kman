@@ -1,32 +1,34 @@
-var Resource = require('koa-resource-router')
+var Promise = require('bluebird')
+
     , Post = require('../models/post')
     , User = require('../models/user')
     , authorize = require('../middles/authorize')
-    , Promise = require('bluebird')
     , socket = require('../socket')
+
+    , resource = require('../utils/resource')
     ;
 
-module.exports = new Resource('posts', {
+module.exports = resource(__filename, authorize, {
     index: function *(next){
         var posts = yield Post.find().limit(15).sort({
-            created_at: -1
+            createdAt: -1
         })
         .populate({
             path: 'comments'
             , select: {
-                created_by: 1
+                createdBy: 1
                 , content: 1
-                , created_at: 1
+                , createdAt: 1
             }
             , option: {
                 limit: 15
                 , sort: {
-                    created_at: -1
+                    createdAt: -1
                 }
             }
         })
         .populate({
-            path: 'created_by',
+            path: 'createdBy',
             select: {
                 _id: 1
                 , name: 1
@@ -36,7 +38,7 @@ module.exports = new Resource('posts', {
         .exec()
         .then(function(doc){
             return Post.populate(doc, {
-                path: 'comments.created_by'
+                path: 'comments.createdBy'
                 , model: 'User'
                 , select: {
                     name: 1
@@ -47,14 +49,13 @@ module.exports = new Resource('posts', {
 
         this.body = posts;
     }
-    , create: [authorize, function *(next){
+    , create: function *(next){
         var body = this.request.body
             , userId = this.user._id
             , post
             ;
 
-        body.created_by = userId;
-        body.created_at = new Date();
+        body.createdBy = userId;
 
         post = new Post(body);
 
@@ -62,7 +63,7 @@ module.exports = new Resource('posts', {
             .then(function(result){
                 var post = result[0];
                 return Post.populate(post, {
-                    path: 'created_by'
+                    path: 'createdBy'
                     , select: {
                         name: 1
                         , avatar: 1
@@ -74,5 +75,5 @@ module.exports = new Resource('posts', {
 
         this.status = 201;
         this.body = post;
-    }]
+    }
 });

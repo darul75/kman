@@ -1,13 +1,14 @@
-var Resource = require('koa-resource-router')
-    , Comment = require('../models/comment')
-    , Post = require('../models/post')
-    , postResource = require('./post')
-    , authorize = require('../middles/authorize')
-    , Promise = require('bluebird')
-    , socket = require('../socket')
+var Promise = require('bluebird')
+
+    , Comment = require('../../models/comment')
+    , Post = require('../../models/post')
+    , authorize = require('../../middles/authorize')
+    , socket = require('../../socket')
+
+    , resource = require('../../utils/resource')
     ;
 
-var commentResource = new Resource('comments', {
+module.exports = resource(__filename, {
     create: [authorize, function *(next){
         var body = this.request.body
             , postId = this.params.post
@@ -15,9 +16,8 @@ var commentResource = new Resource('comments', {
             , comment
             ;
 
-        body.belong_to = postId;
-        body.created_by = userId;
-        body.created_at = new Date();
+        body.belongTo = postId;
+        body.createdBy = userId;
 
         var comment = new Comment(body);
 
@@ -34,7 +34,7 @@ var commentResource = new Resource('comments', {
                 var comment = result[0];
 
                 return Comment.populate(comment, {
-                    path: 'created_by'
+                    path: 'createdBy'
                     , select: {
                         name: 1
                         , avatar: 1
@@ -48,7 +48,3 @@ var commentResource = new Resource('comments', {
         this.body = comment;
     }]
 });
-
-postResource.add(commentResource);
-
-module.exports = commentResource;
